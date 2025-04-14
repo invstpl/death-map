@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pickup Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    #map { height: 90vh; width: 100%; }
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    #controls { padding: 10px; background: #f0f0f0; }
+    input { width: 80%; padding: 8px; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <input id="postcode" type="text" placeholder="Enter postcode and press Enter">
+    <div id="tally"></div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([55.9533, -3.1883], 11); // Edinburgh
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let tally = JSON.parse(localStorage.getItem("pickupTally")) || {};
+    let markers = JSON.parse(localStorage.getItem("pickupMarkers")) || [];
+
+    const dayColors = {
+      0: 'gray',     // Sunday
+      1: 'red',      // Monday
+      2: 'orange',   // Tuesday
+      3: 'yellow',   // Wednesday
+      4: 'green',    // Thursday
+      5: 'blue',     // Friday
+      6: 'purple'    // Saturday
+    };
+
+    function updateTallyDisplay() {
+      let html = 'Tally: ';
+      for (let day in tally) {
+        html += `${day}: ${tally[day]} | `;
+      }
+      document.getElementById("tally").innerHTML = html;
+    }
+
+    function saveData() {
+      localStorage.setItem("pickupTally", JSON.stringify(tally));
+      localStorage.setItem("pickupMarkers", JSON.stringify(markers));
+    }
+
+    function addMarker(postcode) {
+      if (!postcode) return;
+
+      const dayIndex = new Date().getDay();
+      const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayIndex];
+      const color = dayColors[dayIndex];
+
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${postcode}, Edinburgh`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length === 0) {
+            alert("Postcode not found");
+            return;
+          }
+
+          const lat = data[0].lat;
+          const lon = data[0].lon;
+          L.circleMarker([lat, lon], { radius: 8, color }).addTo(map);
+
+          markers.push({ lat, lon, color });
+
+          tally[dayName] = (tally[dayName] || 0) + 1;
+
+          saveData();
+          updateTallyDisplay();
+        });
+    }
+
+    document.getElementById("postcode").addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        const postcode = this.value.trim();
+        addMarker(postcode);
+        this.value = '';
+      }
+    });
+
+    markers.forEach(m => {
+      L.circleMarker([m.lat, m.lon], { radius: 8, color: m.color }).addTo(map);
+    });
+
+    updateTallyDisplay();
+  </script>
+</body>
+</html>
