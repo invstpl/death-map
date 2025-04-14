@@ -32,12 +32,6 @@
       border-radius: 5px;
     }
     .day-name { font-weight: bold; color: #ccc; }
-    .skull {
-      background-size: cover;
-      width: 20px;
-      height: 20px;
-      display: inline-block;
-    }
   </style>
 </head>
 <body>
@@ -58,16 +52,7 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    const iconUrls = {
-      0: 'https://upload.wikimedia.org/wikipedia/commons/2/25/Skull_icon_gray.png',
-      1: 'https://upload.wikimedia.org/wikipedia/commons/3/32/Skull_icon_red.png',
-      2: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Skull_icon_orange.png',
-      3: 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Skull_icon_yellow.png',
-      4: 'https://upload.wikimedia.org/wikipedia/commons/1/1e/Skull_icon_green.png',
-      5: 'https://upload.wikimedia.org/wikipedia/commons/7/7f/Skull_icon_blue.png',
-      6: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Skull_icon_purple.png'
-    };
-
+    const colors = ["gray", "red", "orange", "yellow", "green", "blue", "purple"];
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     let tally = JSON.parse(localStorage.getItem("pickupTally")) || {};
@@ -95,7 +80,7 @@
 
       const dayIndex = new Date().getDay();
       const dayName = dayNames[dayIndex];
-      const iconUrl = iconUrls[dayIndex];
+      const color = colors[dayIndex];
 
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${postcode}, Edinburgh`)
         .then(res => res.json())
@@ -107,13 +92,15 @@
 
           const lat = data[0].lat;
           const lon = data[0].lon;
-          const skullIcon = L.icon({
-            iconUrl: iconUrl,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          });
 
-          L.marker([lat, lon], { icon: skullIcon }).addTo(map);
+          const marker = L.circleMarker([lat, lon], {
+            radius: 8,
+            fillColor: color,
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+          }).addTo(map);
 
           markers.push({ lat, lon, dayIndex });
           tally[dayName] = (tally[dayName] || 0) + 1;
@@ -133,12 +120,14 @@
     });
 
     markers.forEach(m => {
-      const skullIcon = L.icon({
-        iconUrl: iconUrls[m.dayIndex],
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
-      L.marker([m.lat, m.lon], { icon: skullIcon }).addTo(map);
+      const marker = L.circleMarker([m.lat, m.lon], {
+        radius: 8,
+        fillColor: colors[m.dayIndex],
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map);
     });
 
     updateTallyDisplay();
